@@ -1,0 +1,72 @@
+SQL Queries - 3.08
+
+-How many jobs were posted by a particular Hire Manager?
+
+CREATE OR REPLACE VIEW hm AS SELECT first_name,last_name,hire_manager.id as hm_id FROM user_account,hire_manager where user_account.id = hire_manager.user_account_id;
+
+SELECT count(job.id) as no_of_jobs,hire_manager_id, first_name, last_name FROM job, hm where job.hire_manager_id = hm.id group by job.hire_manager_id,hm.first_name,hm.last_name;
+
+-Compute the jobs offering more than 6000 in payment amount.
+
+SELECT * FROM job WHERE payment_amount > 6000;
+
+-Compute all the jobs which have an accepted proposal and hence a contract.
+
+SELECT * FROM job, (SELECT proposal.job_id FROM proposal,
+(SELECT proposal_id FROM contract,proposal WHERE contract.proposal_id = proposal.id) AS R1 WHERE R1.proposal_id = proposal.id) AS R2 WHERE job.id = R2.job_id;
+
+-Compute all freelancers who have a skill of “Web Developer” with skill level above 5.
+
+SELECT * FROM (SELECT * FROM freelancer JOIN (SELECT * FROM has_skill JOIN skill ON skill.id= has_skill.skill_id)
+AS R1 ON R1.freelancer_id = freelancer.id) AS R2 WHERE R2.skill_level > 5 AND R2.skill_name = 'Web developer';
+
+-Compute the no. of contracts of each freelancer.
+
+CREATE VIEW freelancer_names AS
+    SELECT first_name, last_name, freelancer.id FROM freelancer JOIN user_account ON freelancer.user_account_id = user_account.id;
+
+SELECT * FROM freelancer_names JOIN
+(SELECT count(contract.id),proposal.freelancer_id FROM proposal JOIN contract ON proposal.id = contract.proposal_id GROUP BY proposal.freelancer_id)
+AS R1 ON freelancer_names.id = R1.freelancer_id;
+
+-Compute all the certifications provided by “Khan Academy”.
+
+SELECT certification_name FROM certification WHERE provider = 'Khan Academy' GROUP BY certification_name;
+
+-Which test was given the most amount of times?
+
+SELECT * FROM (SELECT test_name, test_link, no_of_times_given, test_id FROM test JOIN
+(SELECT count(id) AS no_of_times_given, test_id FROM test_result GROUP BY test_id) AS R1 ON test.id = R1.test_id) AS R2 ORDER BY no_of_times_given DESC LIMIT 1;
+
+-Which freelancer has not given a test yet?
+
+SELECT * FROM freelancer WHERE freelancer.id NOT IN (SELECT freelancer_id FROM proposal);
+
+-Which freelancer is also a hire manager?
+
+SELECT first_name, last_name, freelancer_reg_date, hire_manager_reg_date, user_account_id FROM freelancer_names JOIN
+(SELECT freelancer.id, freelancer.user_account_id, freelancer.registration_date AS freelancer_reg_date, hire_manager.registration_date AS hire_manager_reg_date
+FROM freelancer JOIN hire_manager ON freelancer.user_account_id = hire_manager.user_account_id) AS R1 ON R1.id = freelancer_names.id;
+
+-Which job has the most no. of other skills required?
+
+SELECT count(other_skills.id), other_skills.job_id FROM job JOIN other_skills ON job.id = other_skills.job_id GROUP BY other_skills.job_id ORDER BY count DESC LIMIT 1;
+
+-Which freelancer has the most no. of skills?
+
+SELECT count(id),freelancer_id FROM has_skill GROUP BY freelancer_id ORDER BY count DESC LIMIT 1;
+
+-Compute the companies with the most no. of hire managers.
+
+SELECT count(hire_manager.id), company_name FROM company JOIN hire_manager ON company.id = hire_manager.company_id GROUP BY company.id ORDER BY count DESC LIMIT 1;
+
+-Compute the proposals with contract having the payment type “Daily” and payment amount more than 2000 and having a client grade above 5.
+
+SELECT R1.id AS PROPOSAL_ID FROM (SELECT type_name, proposal.id, payment_amount, client_grade FROM proposal JOIN payment_type ON proposal.payment_type_id = payment_type.id
+) AS R1 JOIN contract ON R1.id = contract.proposal_id WHERE R1.type_name = 'Daily' and R1.payment_amount > 2000 and R1.client_grade > 5;
+
+-Compute the Jobs that require medium complexity with payment ID ‘5’ and pay above 3000.
+
+SELECT * FROM job WHERE job.complexity = 'Medium' and job.payment_type_id = 1 and job.payment_amount > 2000;
+
+-Compute the proposals posted in the month of November 2019.
